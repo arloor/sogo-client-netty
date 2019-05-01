@@ -37,14 +37,18 @@ public final class SocksServerHandler extends SimpleChannelInboundHandler<SocksM
     public void channelRead0(ChannelHandlerContext ctx, SocksMessage socksRequest) throws Exception {
         switch (socksRequest.version()) {
             case SOCKS4a:
-                Socks4CommandRequest socksV4CmdRequest = (Socks4CommandRequest) socksRequest;
-                if (socksV4CmdRequest.type() == Socks4CommandType.CONNECT) {
-                    ctx.pipeline().addLast(new SocksServerConnectHandler());
-                    ctx.pipeline().remove(this);
-                    ctx.fireChannelRead(socksRequest);
-                } else {
-                    ctx.close();
-                }
+                //不处理sock4,直接关闭channel
+                logger.warn("socks4 request from"+ctx.channel().remoteAddress());
+                ctx.close();
+                //正常处理sock4
+//                Socks4CommandRequest socksV4CmdRequest = (Socks4CommandRequest) socksRequest;
+//                if (socksV4CmdRequest.type() == Socks4CommandType.CONNECT) {
+//                    ctx.pipeline().addLast(new SocksServerConnectHandler());
+//                    ctx.pipeline().remove(this);
+//                    ctx.fireChannelRead(socksRequest);
+//                } else {
+//                    ctx.close();
+//                }
                 break;
             case SOCKS5:
                 if (socksRequest instanceof Socks5InitialRequest) {

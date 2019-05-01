@@ -86,7 +86,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                         // Connection established use handler provided results
                     } else {
                         // Close the connection if the connection attempt has failed.
-                        logger.error("connect to: "+proxyAddr+":"+port+" failed! "+ExceptionUtil.getMessage(future.cause()));
+                        logger.error("connect to: "+request.dstAddr()+":"+request.dstPort()+" failed! == "+ExceptionUtil.getMessage(future.cause()));
                         ctx.channel().writeAndFlush(
                                 new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
                         );
@@ -146,7 +146,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
 //                        System.out.println("连接成功");
                     } else {
                         // Close the connection if the connection attempt has failed.
-                        System.out.println("连接失败");
+                        logger.error("connect to: "+proxyAddr+":"+port+" failed! == "+ExceptionUtil.getMessage(future.cause()));
                         ctx.channel().writeAndFlush(
                                 new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, request.dstAddrType()));
                         SocksServerUtils.closeOnFlush(ctx.channel());

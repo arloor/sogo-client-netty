@@ -16,9 +16,9 @@ public class ExceptionUtil {
             pw.append(e.getClass().getName());
             pw.append(":");
             pw.append(e.getMessage());
-//            pw.append("\n");
-//            // 将出错的栈信息输出到printWriter中
-//            e.printStackTrace(pw);
+            pw.append("\n");
+            // 将出错的栈信息输出到printWriter中
+            e.printStackTrace(pw);
             pw.flush();
             sw.flush();
         } finally {
