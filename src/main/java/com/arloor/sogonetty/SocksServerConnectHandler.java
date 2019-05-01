@@ -86,7 +86,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                         // Connection established use handler provided results
                     } else {
                         // Close the connection if the connection attempt has failed.
-                        logger.error("connect to: ",proxyAddr,port,"failed");
+                        logger.error("connect to: "+proxyAddr+":"+port+" failed");
                         ctx.channel().writeAndFlush(
                                 new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
                         );
