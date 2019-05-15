@@ -38,6 +38,7 @@ public final class SocksServer {
     public static String user;
     public static String pass;
     public static String basicAuth;
+    public static boolean auth;
 
 
 
@@ -79,6 +80,7 @@ public final class SocksServer {
         remotePort=serverInfo.getInteger("ProxyPort");
         remoteHost=serverInfo.getString("ProxyAddr");
         basicAuth= Base64.getEncoder().encodeToString((serverInfo.getString("UserName")+":"+serverInfo.getString("Password")).getBytes());
+        auth=config.getBoolean("Auth");
         System.out.println();
         System.out.println();
     }
@@ -100,9 +102,9 @@ public final class SocksServer {
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
+                    .channel(NioServerSocketChannel.class)
 //             .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new SocksServerInitializer());
+                    .childHandler(new SocksServerInitializer());
             b.bind(localPort).sync().channel().closeFuture().sync();
         } finally {
             bossGroup.shutdownGracefully();
