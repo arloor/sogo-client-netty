@@ -15,6 +15,7 @@
  */
 package com.arloor.sogonetty;
 
+import com.alibaba.fastjson.JSONObject;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -31,13 +32,32 @@ import io.netty.util.concurrent.Promise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ChannelHandler.Sharable
+import java.util.Base64;
+import java.util.Random;
+
+//不可共享
+//@ChannelHandler.Sharable
 public final class SocksServerConnectHandler extends SimpleChannelInboundHandler<SocksMessage> {
 
     private static Logger logger= LoggerFactory.getLogger(SocksServerConnectHandler.class);
 
-    private String proxyAddr=SocksServer.remoteHost;
-    private int port=SocksServer.remotePort;
+    private  int remotePort=80;
+    private  String remoteHost;
+    private  String basicAuth;
+
+    public SocksServerConnectHandler() {
+        super();
+        int use=SocksServer.use;
+        if(use==-1){
+            Random rand = new Random();
+            use=rand.nextInt(SocksServer.servers.size());
+        }
+        JSONObject serverInfo=SocksServer.servers.getJSONObject(use);
+        remotePort=serverInfo.getInteger("ProxyPort");
+        remoteHost=serverInfo.getString("ProxyAddr");
+        System.out.println(remoteHost);
+        basicAuth= Base64.getEncoder().encodeToString((serverInfo.getString("UserName")+":"+serverInfo.getString("Password")).getBytes());
+    }
 
     private final Bootstrap b = new Bootstrap();
 
@@ -120,7 +140,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
 //                                        outboundChannel.pipeline().addLast(new PrintByteBufHandler());
                                         outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
                                         logger.info(request.dstAddr()+":"+request.dstPort()+"  <FROM>  "+ctx.channel().remoteAddress());
-                                        ctx.pipeline().addLast(new RelayOverHttpRequestHandler(outboundChannel,request.dstAddr(),request.dstPort()));
+                                        ctx.pipeline().addLast(new RelayOverHttpRequestHandler(outboundChannel,request.dstAddr(),request.dstPort(),basicAuth));
                                     }
                                 });
                             } else {
@@ -138,7 +158,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(new DirectClientHandler(promise));
 
-            b.connect(proxyAddr, port).addListener(new ChannelFutureListener() {
+            b.connect(remoteHost, remotePort).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (future.isSuccess()) {
@@ -146,7 +166,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
 //                        System.out.println("连接成功");
                     } else {
                         // Close the connection if the connection attempt has failed.
-                        logger.error("connect to: "+proxyAddr+":"+port+" failed! == "+ExceptionUtil.getMessage(future.cause()));
+                        logger.error("connect to: "+remoteHost+":"+remotePort+" failed! == "+ExceptionUtil.getMessage(future.cause()));
                         ctx.channel().writeAndFlush(
                                 new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, request.dstAddrType()));
                         SocksServerUtils.closeOnFlush(ctx.channel());

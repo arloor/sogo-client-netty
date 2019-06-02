@@ -16,6 +16,7 @@
 package com.arloor.sogonetty;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
@@ -33,12 +34,12 @@ public final class SocksServer {
     private static Logger logger= LoggerFactory.getLogger(SocksServer.class);
 
     private static int localPort =1080;
-    public static int remotePort =80;
-    public static String remoteHost;
+
+    public static int use=-1;
     public static String user;
     public static String pass;
-    public static String basicAuth;
     public static boolean auth;
+    public static JSONArray servers;
 
 
 
@@ -71,16 +72,13 @@ public final class SocksServer {
 
         System.out.println("config : "+config);
 
-
         localPort =config.getInteger("ClientPort");
         user=config.getString("User");
         pass=config.getString("Pass");
-        int use=config.getInteger("Use");
-        JSONObject serverInfo=config.getJSONArray("Servers").getJSONObject(use);
-        remotePort=serverInfo.getInteger("ProxyPort");
-        remoteHost=serverInfo.getString("ProxyAddr");
-        basicAuth= Base64.getEncoder().encodeToString((serverInfo.getString("UserName")+":"+serverInfo.getString("Password")).getBytes());
         auth=config.getBoolean("Auth");
+        use=config.getInteger("Use");
+        servers=config.getJSONArray("Servers");
+
         System.out.println();
         System.out.println();
     }

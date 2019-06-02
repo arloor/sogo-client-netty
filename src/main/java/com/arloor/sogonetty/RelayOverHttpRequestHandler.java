@@ -32,11 +32,13 @@ public final class RelayOverHttpRequestHandler extends ChannelInboundHandlerAdap
     private String targetAddr;
     private int targetPort;
     private final Channel relayChannel;
+    private final String basicAuth;
 
-    public RelayOverHttpRequestHandler(Channel relayChannel,String targetAddr,int targetPort) {
+    public RelayOverHttpRequestHandler(Channel relayChannel, String targetAddr, int targetPort, String basicAuth) {
         this.relayChannel = relayChannel;
         this.targetAddr=targetAddr;
         this.targetPort=targetPort;
+        this.basicAuth=basicAuth;
     }
 
     @Override
@@ -59,7 +61,7 @@ public final class RelayOverHttpRequestHandler extends ChannelInboundHandlerAdap
             ByteBuf buf = PooledByteBufAllocator.DEFAULT.buffer();
             buf.writeBytes("POST /target?at=".getBytes());
             buf.writeBytes(MyBase64.encode((targetAddr+":"+targetPort).getBytes()));
-            buf.writeBytes((" HTTP/1.1\r\nHost: " + fakeHost + "\r\nAuthorization: Basic " + SocksServer.basicAuth + "\r\nAccept: */*\r\nContent-Type: text/plain\r\naccept-encoding: gzip, deflate\r\ncontent-length: ").getBytes());
+            buf.writeBytes((" HTTP/1.1\r\nHost: " + fakeHost + "\r\nAuthorization: Basic " + basicAuth + "\r\nAccept: */*\r\nContent-Type: text/plain\r\naccept-encoding: gzip, deflate\r\ncontent-length: ").getBytes());
             buf.writeBytes(String.valueOf(content.readableBytes()).getBytes());
             buf.writeBytes("\r\n\r\n".getBytes());
             content.forEachByte(value -> {
