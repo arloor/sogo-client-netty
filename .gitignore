@@ -39,4 +39,4 @@ fabric.properties
 
 *.jar
 
-sogo.json
+#sogo.json
