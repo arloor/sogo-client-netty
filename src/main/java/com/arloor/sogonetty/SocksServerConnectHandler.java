@@ -55,7 +55,6 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
         JSONObject serverInfo=SocksServer.servers.getJSONObject(use);
         remotePort=serverInfo.getInteger("ProxyPort");
         remoteHost=serverInfo.getString("ProxyAddr");
-        System.out.println(remoteHost);
         basicAuth= Base64.getEncoder().encodeToString((serverInfo.getString("UserName")+":"+serverInfo.getString("Password")).getBytes());
     }
 
