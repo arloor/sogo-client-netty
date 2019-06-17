@@ -15,9 +15,12 @@
  */
 package com.arloor.sogonetty;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.concurrent.Promise;
 
 public final class DirectClientHandler extends ChannelInboundHandlerAdapter {
@@ -40,12 +43,30 @@ public final class DirectClientHandler extends ChannelInboundHandlerAdapter {
         ctx.pipeline().addLast(new RelayOverHttpRequestHandler(dstAddr,dstPort,basicAuth));
         //连接完毕后，增加handler：去除读到的http响应包裹
         ctx.pipeline().addLast(new HttpResponseDecoder());
-        ctx.pipeline().remove(this);
-        promise.setSuccess(ctx.channel());
+        ctx.pipeline().addLast("check",new CheckConnectedHandler());
+        byte[] raw="init".getBytes();
+        ctx.channel().writeAndFlush(Unpooled.wrappedBuffer(raw));
     }
 
-    private static class CheckConnectedHandler extends ChannelInboundHandlerAdapter{
-//todo:检测是否连接完毕。
+    private class CheckConnectedHandler extends SimpleChannelInboundHandler<ByteBuf> {
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+            //todo:检测是否连接完毕。
+            if(msg.readableBytes()==5&&msg.readByte()=='c'&&msg.readByte()=='h'&&msg.readByte()=='e'&&msg.readByte()=='c'&&msg.readByte()=='k'){
+                ctx.pipeline().remove("check");
+                //宣告成功
+                connected(ctx);
+            }else {
+                //todo 错误处理
+            }
+        }
+
+
+    }
+
+     private void connected(ChannelHandlerContext ctx){
+        ctx.pipeline().remove(this);
+        promise.setSuccess(ctx.channel());
     }
 
     @Override
