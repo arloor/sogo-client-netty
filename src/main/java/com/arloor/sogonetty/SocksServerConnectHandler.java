@@ -85,10 +85,12 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                                 responseFuture.addListener(new ChannelFutureListener() {
                                     @Override
                                     public void operationComplete(ChannelFuture channelFuture) {
-                                        ctx.pipeline().remove(SocksServerConnectHandler.this);
-                                        outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
-                                        logger.info(request.dstAddr()+":"+request.dstPort()+"  <FROM>  "+ctx.channel().remoteAddress());
-                                        ctx.pipeline().addLast(new RelayHandler(outboundChannel));
+                                        if(channelFuture.isSuccess()){
+                                            ctx.pipeline().remove(SocksServerConnectHandler.this);
+                                            outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
+                                            logger.info(request.dstAddr()+":"+request.dstPort()+"  <FROM>  "+ctx.channel().remoteAddress());
+                                            ctx.pipeline().addLast(new RelayHandler(outboundChannel));
+                                        }
                                     }
                                 });
                             } else {
