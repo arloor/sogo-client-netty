@@ -63,56 +63,9 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
     @Override
     public void channelRead0(final ChannelHandlerContext ctx, final SocksMessage message) throws Exception {
         if (message instanceof Socks4CommandRequest) {
-            final Socks4CommandRequest request = (Socks4CommandRequest) message;
-            Promise<Channel> promise = ctx.executor().newPromise();
-            promise.addListener(
-                    new FutureListener<Channel>() {
-                        @Override
-                        public void operationComplete(final Future<Channel> future) throws Exception {
-                            final Channel outboundChannel = future.getNow();
-                            if (future.isSuccess()) {
-                                ChannelFuture responseFuture = ctx.channel().writeAndFlush(
-                                        new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS));
-
-                                responseFuture.addListener(new ChannelFutureListener() {
-                                    @Override
-                                    public void operationComplete(ChannelFuture channelFuture) {
-                                        ctx.pipeline().remove(SocksServerConnectHandler.this);
-                                        outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
-                                        ctx.pipeline().addLast(new RelayHandler(outboundChannel));
-                                    }
-                                });
-                            } else {
-                                ctx.channel().writeAndFlush(
-                                        new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED));
-                                SocksServerUtils.closeOnFlush(ctx.channel());
-                            }
-                        }
-                    });
-
-            final Channel inboundChannel = ctx.channel();
-            b.group(inboundChannel.eventLoop())
-                    .channel(NioSocketChannel.class)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-                    .option(ChannelOption.SO_KEEPALIVE, true)
-                    .handler(new DirectClientHandler(promise));
-
-//            b.connect(proxyAddr, port).addListener(new ChannelFutureListener() {
-            b.connect(request.dstAddr(), request.dstPort()).addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    if (future.isSuccess()) {
-                        // Connection established use handler provided results
-                    } else {
-                        // Close the connection if the connection attempt has failed.
-                        logger.error("connect to: "+request.dstAddr()+":"+request.dstPort()+" failed! == "+ExceptionUtil.getMessage(future.cause()));
-                        ctx.channel().writeAndFlush(
-                                new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
-                        );
-                        SocksServerUtils.closeOnFlush(ctx.channel());
-                    }
-                }
-            });
+            //不处理sock4,直接关闭channel
+            logger.warn("socks4 request from"+ctx.channel().remoteAddress());
+            ctx.close();
         } else if (message instanceof Socks5CommandRequest) {
             final Socks5CommandRequest request = (Socks5CommandRequest) message;
             Promise<Channel> promise = ctx.executor().newPromise();
@@ -134,12 +87,11 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                                     public void operationComplete(ChannelFuture channelFuture) {
                                         ctx.pipeline().remove(SocksServerConnectHandler.this);
                                         //todo:修改成包裹http的
-
                                         outboundChannel.pipeline().addLast(new HttpResponseDecoder());
 //                                        outboundChannel.pipeline().addLast(new PrintByteBufHandler());
                                         outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
                                         logger.info(request.dstAddr()+":"+request.dstPort()+"  <FROM>  "+ctx.channel().remoteAddress());
-                                        ctx.pipeline().addLast(new RelayOverHttpRequestHandler(outboundChannel,request.dstAddr(),request.dstPort(),basicAuth));
+                                        ctx.pipeline().addLast(new RelayHandler(outboundChannel));
                                     }
                                 });
                             } else {
@@ -155,7 +107,7 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                     .option(ChannelOption.SO_KEEPALIVE, true)
-                    .handler(new DirectClientHandler(promise));
+                    .handler(new DirectClientHandler(promise,request.dstAddr(),request.dstPort(),basicAuth));
 
             b.connect(remoteHost, remotePort).addListener(new ChannelFutureListener() {
                 @Override

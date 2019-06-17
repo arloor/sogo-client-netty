@@ -18,46 +18,31 @@ package com.arloor.sogonetty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 
 import java.util.Base64;
 
-public final class RelayOverHttpRequestHandler extends ChannelInboundHandlerAdapter {
+public final class RelayOverHttpRequestHandler extends ChannelOutboundHandlerAdapter {
 
     private final static String fakeHost="qtgwuehaoisdhuaishdaisuhdasiuhlassjd.com";
 
     private String targetAddr;
     private int targetPort;
-    private final Channel relayChannel;
     private final String basicAuth;
 
-    public RelayOverHttpRequestHandler(Channel relayChannel, String targetAddr, int targetPort, String basicAuth) {
-        this.relayChannel = relayChannel;
+    public RelayOverHttpRequestHandler( String targetAddr, int targetPort, String basicAuth) {
         this.targetAddr=targetAddr;
         this.targetPort=targetPort;
         this.basicAuth=basicAuth;
     }
 
     @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        boolean canWrite = ctx.channel().isWritable();
-        //流量控制，不允许继续读
-        relayChannel.config().setAutoRead(canWrite);
-        super.channelWritabilityChanged(ctx);
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        if (relayChannel.isActive()) {
-            ByteBuf content=(ByteBuf)msg;
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        ByteBuf content=(ByteBuf)msg;
+        if(content.readableBytes()==0){
+            ctx.writeAndFlush(content,promise);
+        }else {
             ByteBuf buf = PooledByteBufAllocator.DEFAULT.buffer();
             buf.writeBytes("POST /target?at=".getBytes());
             buf.writeBytes(MyBase64.encode((targetAddr+":"+targetPort).getBytes()));
@@ -68,17 +53,8 @@ public final class RelayOverHttpRequestHandler extends ChannelInboundHandlerAdap
                 buf.writeByte(~value);
                 return true;
             });
-            relayChannel.writeAndFlush(buf);
+            ctx.writeAndFlush(buf,promise);
             ReferenceCountUtil.release(content);
-        } else {
-            ReferenceCountUtil.release(msg);
-        }
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        if (relayChannel.isActive()) {
-            SocksServerUtils.closeOnFlush(relayChannel);
         }
     }
 

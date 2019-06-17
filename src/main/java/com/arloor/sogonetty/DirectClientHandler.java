@@ -23,13 +23,22 @@ import io.netty.util.concurrent.Promise;
 public final class DirectClientHandler extends ChannelInboundHandlerAdapter {
 
     private final Promise<Channel> promise;
+    private final String dstAddr;
+    private final int dstPort;
+    private final String basicAuth;
 
-    public DirectClientHandler(Promise<Channel> promise) {
+    public DirectClientHandler(Promise<Channel> promise, String targetAddr, int targetPort,String basicAuth) {
         this.promise = promise;
+        this.dstAddr=targetAddr;
+        this.dstPort=targetPort;
+        this.basicAuth=basicAuth;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
+        //连接完毕后，增加handler：所有写操作包裹http请求
+        ctx.pipeline().addLast(new RelayOverHttpRequestHandler(dstAddr,dstPort,basicAuth));
+
         ctx.pipeline().remove(this);
         promise.setSuccess(ctx.channel());
     }
