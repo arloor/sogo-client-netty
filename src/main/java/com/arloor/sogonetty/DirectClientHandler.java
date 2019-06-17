@@ -38,9 +38,14 @@ public final class DirectClientHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) {
         //连接完毕后，增加handler：所有写操作包裹http请求
         ctx.pipeline().addLast(new RelayOverHttpRequestHandler(dstAddr,dstPort,basicAuth));
-
+        //连接完毕后，增加handler：去除读到的http响应包裹
+        ctx.pipeline().addLast(new HttpResponseDecoder());
         ctx.pipeline().remove(this);
         promise.setSuccess(ctx.channel());
+    }
+
+    private static class CheckConnectedHandler extends ChannelInboundHandlerAdapter{
+//todo:检测是否连接完毕。
     }
 
     @Override

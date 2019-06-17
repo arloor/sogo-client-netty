@@ -86,9 +86,6 @@ public final class SocksServerConnectHandler extends SimpleChannelInboundHandler
                                     @Override
                                     public void operationComplete(ChannelFuture channelFuture) {
                                         ctx.pipeline().remove(SocksServerConnectHandler.this);
-                                        //todo:修改成包裹http的
-                                        outboundChannel.pipeline().addLast(new HttpResponseDecoder());
-//                                        outboundChannel.pipeline().addLast(new PrintByteBufHandler());
                                         outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
                                         logger.info(request.dstAddr()+":"+request.dstPort()+"  <FROM>  "+ctx.channel().remoteAddress());
                                         ctx.pipeline().addLast(new RelayHandler(outboundChannel));
